@@ -1,0 +1,30 @@
+{
+  "folders": [
+    {
+      "name": "apps-in-chatgpt",
+      "path": "."
+    }
+  ],
+  "settings": {
+    "files.exclude": {
+      "**/.cache": true,
+      "**/.next": true,
+      "**/.nuxt": true,
+      "**/.svelte-kit": true,
+      "**/build": true,
+      "**/coverage": true,
+      "**/dist": true,
+      "**/node_modules": true
+    },
+    "search.exclude": {
+      "**/.cache": true,
+      "**/.next": true,
+      "**/.nuxt": true,
+      "**/.svelte-kit": true,
+      "**/build": true,
+      "**/coverage": true,
+      "**/dist": true,
+      "**/node_modules": true
+    }
+  }
+}
