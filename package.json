@@ -6,6 +6,7 @@
   "type": "module",
   "scripts": {
     "build": "tsx ./build-all.mts",
+    "build:pizzaz": "tsx ./build-all.mts --target pizzaz",
     "serve": "serve \"%CD%\\assets\" -p 4444 --cors",
     "start:pizzaz": "corepack pnpm --filter pizzaz-mcp-node start",
     "dev:pizzaz": "corepack pnpm run build && corepack pnpm run start:pizzaz",
