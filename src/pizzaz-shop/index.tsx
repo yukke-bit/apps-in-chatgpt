@@ -19,7 +19,6 @@ import { useWidgetProps } from "../use-widget-props";
 import { useWidgetState } from "../use-widget-state";
 
 import { Button } from "@openai/apps-sdk-ui/components/Button";
-import { Image } from "@openai/apps-sdk-ui/components/Image";
 
 type NutritionFact = {
   label: string;
@@ -50,6 +49,42 @@ type PizzazCartWidgetProps = {
   cartItems?: CartItem[];
   widgetState?: Partial<PizzazCartWidgetState> | null;
 };
+
+type PizzaImageProps = {
+  src?: string;
+  alt: string;
+  className?: string;
+};
+
+function PizzaImage({ src, alt, className }: PizzaImageProps) {
+  const [failed, setFailed] = useState(false);
+
+  if (!src || failed) {
+    return (
+      <div
+        className={clsx(
+          "flex items-center justify-center bg-gradient-to-br from-orange-100 via-amber-50 to-emerald-100 text-sm font-medium text-slate-700",
+          className
+        )}
+        role="img"
+        aria-label={alt}
+      >
+        {alt}
+      </div>
+    );
+  }
+
+  return (
+    <img
+      src={src}
+      alt={alt}
+      className={className}
+      loading="lazy"
+      decoding="async"
+      onError={() => setFailed(true)}
+    />
+  );
+}
 
 const SERVICE_FEE = 3;
 const DELIVERY_FEE = 2.99;
@@ -299,7 +334,7 @@ function SelectedCartItemPanel({
     <div className="space-y-4">
       <div className="overflow-hidden rounded-none border-b border-black/5 bg-white">
         <div className="relative flex items-center justify-center overflow-hidden">
-          <Image
+          <PizzaImage
             src={item.image}
             alt={item.name}
             className="max-h-[320px] w-[80%] object-cover"
@@ -1270,7 +1305,7 @@ function App() {
                       !isSingle && !isLeft && !isRight && "rounded-none"
                     )}
                   >
-                    <Image
+                    <PizzaImage
                       src={item.image}
                       alt={item.name}
                       className="h-60 w-full object-cover transition-transform duration-200"
@@ -1354,7 +1389,7 @@ function App() {
               >
                 <div className="relative h-10 w-10 overflow-hidden rounded-xl bg-white">
                   {item.image ? (
-                    <Image
+                    <PizzaImage
                       src={item.image}
                       alt={item.name}
                       className="h-full w-full object-cover"

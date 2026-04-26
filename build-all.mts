@@ -103,18 +103,27 @@ for (const file of selectedEntries) {
   builtNames.push(name);
 }
 
+const hashSource = fs
+  .readdirSync(outDir)
+  .filter((file) => file.endsWith(".js") || file.endsWith(".css"))
+  .sort()
+  .map((file) => fs.readFileSync(path.join(outDir, file)));
 const hash = crypto
   .createHash("sha256")
-  .update(pkg.version, "utf8")
-  .digest("hex")
-  .slice(0, 4);
+  .update(pkg.version, "utf8");
+
+for (const content of hashSource) {
+  hash.update(content);
+}
+
+const assetHash = hash.digest("hex").slice(0, 8);
 
 for (const file of fs.readdirSync(outDir)) {
   if (!file.endsWith(".js") && !file.endsWith(".css")) continue;
   const oldPath = path.join(outDir, file);
   const ext = path.extname(file);
   const base = path.basename(file, ext);
-  fs.renameSync(oldPath, path.join(outDir, `${base}-${hash}${ext}`));
+  fs.renameSync(oldPath, path.join(outDir, `${base}-${assetHash}${ext}`));
 }
 
 const assetsBaseUrl = (
@@ -127,8 +136,8 @@ for (const name of builtNames) {
   const html = `<!doctype html>
 <html>
 <head>
-  <script type="module" src="${assetsBaseUrl}/${name}-${hash}.js"></script>
-  <link rel="stylesheet" href="${assetsBaseUrl}/${name}-${hash}.css">
+  <script type="module" src="${assetsBaseUrl}/${name}-${assetHash}.js"></script>
+  <link rel="stylesheet" href="${assetsBaseUrl}/${name}-${assetHash}.css">
 </head>
 <body>
   <div id="${name}-root"></div>
@@ -136,5 +145,5 @@ for (const name of builtNames) {
 </html>
 `;
   fs.writeFileSync(path.join(outDir, `${name}.html`), html, "utf8");
-  fs.writeFileSync(path.join(outDir, `${name}-${hash}.html`), html, "utf8");
+  fs.writeFileSync(path.join(outDir, `${name}-${assetHash}.html`), html, "utf8");
 }
