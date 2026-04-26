@@ -230,16 +230,16 @@ widgets.forEach((widget) => {
 });
 
 const toolInputSchema = {
-  type: "object",
+  type: "object" as const,
   properties: {
     pizzaTopping: {
       type: "string",
       description: "Topping to mention when rendering the widget.",
     },
   },
-  required: ["pizzaTopping"],
+  required: ["pizzaTopping"] as string[],
   additionalProperties: false,
-} as const;
+};
 
 const toolInputParser = z.object({
   pizzaTopping: z.string(),
