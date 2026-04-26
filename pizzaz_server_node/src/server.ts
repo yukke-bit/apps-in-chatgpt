@@ -55,8 +55,8 @@ const ASSETS_DIR = path.resolve(ROOT_DIR, "assets");
 const ASSETS_BASE_URL =
   process.env.BASE_URL ?? "https://yukke-bit.github.io/apps-in-chatgpt";
 const ASSETS_ORIGIN = new URL(ASSETS_BASE_URL).origin;
-const WIDGET_MIME_TYPE = "text/html+skybridge";
-const WIDGET_URI_VERSION = "v20260426";
+const WIDGET_MIME_TYPE = "text/html;profile=mcp-app";
+const WIDGET_URI_VERSION = "v20260426-mcpapp-569df46f";
 const WIDGET_CONNECT_DOMAINS = [
   "https://api.mapbox.com",
   "https://events.mapbox.com",
@@ -103,7 +103,36 @@ function readWidgetHtml(componentName: string): string {
     );
   }
 
-  return htmlContents;
+  return inlineWidgetAssets(htmlContents);
+}
+
+function inlineWidgetAssets(htmlContents: string): string {
+  return htmlContents
+    .replace(
+      /<script\s+type="module"\s+src="([^"]+)"><\/script>/g,
+      (_match, src: string) => {
+        const assetPath = path.join(ASSETS_DIR, path.basename(new URL(src).pathname));
+        const js = fs
+          .readFileSync(assetPath, "utf8")
+          .replace(/<\/script/gi, "<\\/script");
+
+        return `<script type="module">\n${js}\n</script>`;
+      }
+    )
+    .replace(
+      /<link\s+rel="stylesheet"\s+href="([^"]+)">/g,
+      (_match, href: string) => {
+        const assetPath = path.join(
+          ASSETS_DIR,
+          path.basename(new URL(href).pathname)
+        );
+        const css = fs
+          .readFileSync(assetPath, "utf8")
+          .replace(/<\/style/gi, "<\\/style");
+
+        return `<style>\n${css}\n</style>`;
+      }
+    );
 }
 
 function widgetDescriptorMeta(widget: PizzazWidget) {
@@ -130,6 +159,7 @@ function widgetResourceMeta(widget: PizzazWidget) {
       prefersBorder: true,
     },
     "openai/widgetDescription": `${widget.title} UI`,
+    "openai/widgetPrefersBorder": true,
     "openai/widgetCSP": {
       connect_domains: WIDGET_CONNECT_DOMAINS,
       resource_domains: WIDGET_RESOURCE_DOMAINS,

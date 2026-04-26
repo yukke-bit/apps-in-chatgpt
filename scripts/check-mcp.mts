@@ -178,8 +178,15 @@ async function main() {
   );
 
   const content = resource.message?.result?.contents[0];
-  if (!content?.text?.includes("https://yukke-bit.github.io/apps-in-chatgpt")) {
-    throw new Error("Widget HTML does not reference the GitHub Pages assets URL");
+  const hasExternalAssets = content?.text?.includes(
+    "https://yukke-bit.github.io/apps-in-chatgpt"
+  );
+  const hasInlineAssets =
+    content?.text?.includes("<script type=\"module\">") &&
+    content.text.includes("<style>");
+
+  if (!hasExternalAssets && !hasInlineAssets) {
+    throw new Error("Widget HTML does not include external or inline assets");
   }
 
   console.log(`Resource read: ${content.uri} (${content.mimeType})`);

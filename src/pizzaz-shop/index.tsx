@@ -79,8 +79,6 @@ function PizzaImage({ src, alt, className }: PizzaImageProps) {
       src={src}
       alt={alt}
       className={className}
-      loading="lazy"
-      decoding="async"
       onError={() => setFailed(true)}
     />
   );

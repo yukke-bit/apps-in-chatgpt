@@ -19,7 +19,6 @@ function AlbumCard({ album, onSelect }) {
             src={album.cover}
             alt={album.title}
             className="h-full w-full object-cover"
-            loading="lazy"
           />
           <Badge
             variant="soft"

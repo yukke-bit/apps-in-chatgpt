@@ -20,7 +20,6 @@ export default function FilmStrip({ album, selectedIndex, onSelect }) {
               src={photo.url}
               alt={photo.title || `Photo ${idx + 1}`}
               className="h-full w-full object-cover"
-              loading="lazy"
             />
           </div>
         </button>
