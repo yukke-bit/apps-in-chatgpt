@@ -67,6 +67,7 @@ type PizzaImageProps = {
   className?: string;
 };
 
+// 商品画像を表示する。読み込みに失敗した場合は商品名入りのフォールバック表示に切り替える。
 // ChatGPT の iframe 内では画像読み込みに失敗することがあるため、
 // 画像が読めない場合も商品名入りの fallback を表示します。
 function PizzaImage({ src, alt, className }: PizzaImageProps) {
@@ -253,6 +254,7 @@ const INITIAL_CART_ITEMS: CartItem[] = [
   },
 ];
 
+// CartItem をディープコピーして返す。配列フィールドも新しい参照にする。
 const cloneCartItem = (item: CartItem): CartItem => ({
   ...item,
   nutritionFacts: item.nutritionFacts?.map((fact) => ({ ...fact })),
@@ -260,9 +262,11 @@ const cloneCartItem = (item: CartItem): CartItem => ({
   tags: item.tags ? [...item.tags] : undefined,
 });
 
+// 初期商品データをコピーして新しい配列を返す。
 const createDefaultCartItems = (): CartItem[] =>
   INITIAL_CART_ITEMS.map((item) => cloneCartItem(item));
 
+// widget state の初期値を返す。
 const createDefaultWidgetState = (): PizzazCartWidgetState => ({
   state: null,
   cartItems: createDefaultCartItems(),
@@ -334,6 +338,7 @@ type SelectedCartItemPanelProps = {
   onAdjustQuantity: (id: string, delta: number) => void;
 };
 
+// 商品詳細パネルを表示する。画像・価格・説明・栄養成分・数量変更ボタンを含む。
 function SelectedCartItemPanel({
   item,
   onAdjustQuantity,
@@ -440,6 +445,7 @@ type CheckoutDetailsPanelProps = {
   onContinueToPayment?: () => void;
 };
 
+// Checkout 詳細パネルを表示する。配送先・配送方法・チップ選択・合計金額・支払いボタンを含む。
 function CheckoutDetailsPanel({
   shouldShowCheckoutOnly,
   subtotal,
@@ -587,6 +593,7 @@ function App() {
   const cartGridRef = useRef<HTMLDivElement | null>(null);
   const [gridColumnCount, setGridColumnCount] = useState(1);
 
+  // widget state の商品リストに不足情報があれば現在の固定データで補完し、新規商品も追加して返す。
   // 古い widget state に不足している商品情報があっても、現在の固定データで補完します。
   const mergeWithDefaultItems = useCallback(
     (items: CartItem[]): CartItem[] => {
@@ -735,6 +742,7 @@ function App() {
   );
   const [activeFilters, setActiveFilters] = useState<string[]>([]);
 
+  // widget state を部分的に更新する。既存の state とマージして setWidgetState に渡す。
   // 2. ユーザー操作で変わった内容を、ChatGPT側のwidget stateに戻します。
   const updateWidgetState = useCallback(
     (partial: Partial<PizzazCartWidgetState>) => {
@@ -768,6 +776,7 @@ function App() {
     wasModalViewRef.current = isModalView;
   }, [checkoutFromState, isModalView, updateWidgetState]);
 
+  // 指定商品の数量を delta 分増減し、ローカル state と widget state の両方を更新する。
   // 数量変更はローカル表示だけでなく widget state にも保存します。
   // これにより、モーダルを開いた後もCart内容を引き継げます。
   const adjustQuantity = useCallback(
@@ -799,6 +808,7 @@ function App() {
 
   const manualCheckoutTriggerRef = useRef(false);
 
+  // ChatGPT の requestModal を呼び出してモーダルを開く。クリック位置をアンカーとして渡せる。
   // 3. 商品詳細、Cart、Checkout風画面をChatGPTのモーダルとして開きます。
   // 商品詳細・Cart・Checkout風画面は、ChatGPT の modal として同じ widget を開き直します。
   const requestModalWithAnchor = useCallback(
@@ -841,6 +851,7 @@ function App() {
     [isModalView]
   );
 
+  // Checkout モーダルを開く。
   const openCheckoutModal = useCallback(
     (anchorElement?: HTMLElement | null) => {
       requestModalWithAnchor({
@@ -852,6 +863,7 @@ function App() {
     [requestModalWithAnchor]
   );
 
+  // 指定商品の詳細モーダルを開く。
   const openCartItemModal = useCallback(
     ({
       selectedId,
@@ -871,6 +883,7 @@ function App() {
     [requestModalWithAnchor]
   );
 
+  // 商品カードがクリックされたとき、選択状態を更新して商品詳細モーダルを開く。
   const handleCartItemSelect = useCallback(
     (id: string, anchorElement?: HTMLElement | null) => {
       const itemName = cartItems.find((item) => item.id === id)?.name ?? null;
@@ -924,6 +937,7 @@ function App() {
     });
   }, [activeFilters, cartItems]);
 
+  // グリッドの現在の幅に合わせてカラム数を計算し、CSS に反映する。
   const updateItemColumnPlacement = useCallback(() => {
     const gridNode = cartGridRef.current;
 
@@ -947,6 +961,7 @@ function App() {
     setGridColumnCount(columnCount);
   }, [isFullscreen]);
 
+  // フィルタボタンが押されたとき、選択フィルタを切り替えてグリッドを再計算する。
   const handleFilterToggle = useCallback(
     (id: string) => {
       setActiveFilters((previous) => {
@@ -992,6 +1007,7 @@ function App() {
     };
   }, [updateItemColumnPlacement]);
 
+  // Cart モーダルを開く。現在のカート内容・小計・合計をパラメータとして渡す。
   const openCartModal = useCallback(
     (anchorElement?: HTMLElement | null) => {
       if (isModalView || shouldShowCheckoutOnly) {
@@ -1110,6 +1126,7 @@ function App() {
     return Number.isFinite(candidate) ? candidate : totalItems;
   }, [isCartModalView, modalParams?.totalItems, totalItems]);
 
+  // 「Continue to payment」ボタンが押されたとき、イベントを発火して Checkout 画面へ遷移する。
   const handleContinueToPayment = useCallback(
     (event?: ReactMouseEvent<HTMLElement>) => {
       const anchorElement = event?.currentTarget ?? null;
@@ -1162,6 +1179,7 @@ function App() {
     ]
   );
 
+  // 「See all items」ボタンが押されたとき、ChatGPT の表示を全画面モードに切り替える。
   // 6. 「See all items」はChatGPTの表示モードを広げるだけで、商品データは変えません。
   const handleSeeAll = useCallback(async () => {
     if (typeof window === "undefined") {

@@ -1,166 +1,187 @@
 # apps-in-chatgpt
 
-公式サンプル [`openai/openai-apps-sdk-examples`](https://github.com/openai/openai-apps-sdk-examples) の Pizzaz デモをベースにしたワークスペースです。本番運用を見据えて、MCP server と widget assets は分離して扱います。
+OpenAI の公式デモ（Pizzaz）をベースに、ChatGPT Apps SDK の動作を確認するためのワークスペースです。公式サンプル [`openai/openai-apps-sdk-examples`](https://github.com/openai/openai-apps-sdk-examples) をほぼそのまま動かしたものです。
 
-## 構成
+---
 
-- `pizzaz_server_node/` - Node.js の Pizzaz MCP server。公式 `mcp_app_basics_node` に寄せた Streamable HTTP 構成です。
-- `src/pizzaz*` - Pizzaz widget の React 実装。
-- `assets/` - `pnpm run build` で生成される widget HTML/JS/CSS の出力先。
-- `docs/` - 設計メモや作業計画。
+## 全体の仕組み
 
-## アーキテクチャ
+### 動作フロー
 
-Pizzaz は2つの公開面を持ちます。
+ChatGPT 上でアプリが表示されるまでには、大きく 2 つのフェーズがあります。
 
-- MCP server: ChatGPT / Antigravity から接続される API。ローカルでは `http://localhost:8000/mcp`。
-- Widget assets: ChatGPT 内に表示する HTML/JS/CSS。既定では GitHub Pages の `https://yukke-bit.github.io/apps-in-chatgpt` を参照します。
-
-MCP server は `McpServer`、`registerAppTool`、`registerAppResource`、Express、stateless `StreamableHTTPServerTransport` で構成しています。legacy SSE endpoint は提供していません。
-
-本番では、MCP server は Node.js サーバーとして公開し、widget assets は CDN や静的ホスティングへ配置する想定です。`BASE_URL` は widget HTML 内に埋め込まれる JS/CSS の参照先です。未指定時は GitHub Pages の URL を使います。
-
-## 全体の動作フロー
-
-ChatGPT上でアプリが表示されるまでの流れです。
+**フェーズ 1 — ビルドとデプロイ（開発時）**
 
 ```
-① コードを書く
-   src/pizzaz-shop/index.tsx   ← ReactコンポーネントでUIを作る
-
-        ↓  pnpm run build（build-all.mts が実行される）
-
-② ビルド成果物が assets/ に生成される
-   pizzaz-shop-[hash].js       ← Reactコードをまとめたもの
-   pizzaz-shop-[hash].css      ← スタイル
-   pizzaz-shop.html            ← 上2つを読み込む薄いHTML
-
-        ↓  git push → GitHub Pages で自動公開（GitHub Actions）
-
-③ インターネット上に公開される
-   https://yukke-bit.github.io/apps-in-chatgpt/pizzaz-shop-[hash].js
-   https://yukke-bit.github.io/apps-in-chatgpt/pizzaz-shop-[hash].css
-
-        ↓  ChatGPTが「ウィジェットを表示して」と呼び出す
-
-④ MCPサーバー（pizzaz_server_node/src/server.ts）が応答する
-   ChatGPTからのリクエストを受け取り、
-   assets/pizzaz-shop.html の中身（HTML文字列）をそのまま返す
-
-        ↓  ChatGPTがそのHTMLをiframeで表示
-
-⑤ ChatGPTのUI上に表示される
-   iframeの中でGitHub PagesのJS/CSSが読み込まれ、Reactアプリが動く
+src/pizzaz-shop/index.tsx
+        │
+        │  pnpm run build
+        │  （build-all.mts が実行される）
+        ▼
+assets/
+  ├─ pizzaz-shop-[hash].js    ← Reactコードをまとめたもの
+  ├─ pizzaz-shop-[hash].css   ← スタイル
+  └─ pizzaz-shop.html         ← 上2つを読み込む薄いHTML
+        │
+        │  git push → GitHub Actions が自動実行
+        ▼
+GitHub Pages
+  https://yukke-bit.github.io/apps-in-chatgpt/pizzaz-shop-[hash].js
+  https://yukke-bit.github.io/apps-in-chatgpt/pizzaz-shop-[hash].css
 ```
+
+**フェーズ 2 — ChatGPT からの呼び出し（実行時）**
+
+```
+ユーザーが ChatGPT に話しかける
+        │
+        │  ChatGPT が MCP ツールを呼び出す
+        ▼
+MCPサーバー（pizzaz_server_node/src/server.ts）
+  ポート 8000 で待機中
+  └─ assets/pizzaz-shop.html の中身（HTML文字列）を返す
+        │
+        │  ChatGPT がそのHTMLをiframeに表示
+        ▼
+iframe の中で GitHub Pages の JS/CSS が読み込まれる
+        │
+        ▼
+Reactアプリ（index.tsx）が起動し、ChatGPT 上に表示される
+```
+
+---
 
 ### 各ファイルの役割
 
-| ファイル | 役割 |
-|---|---|
-| `src/pizzaz-shop/index.tsx` | UIを作るReactコード。ここを編集してデザインや機能を変える |
-| `build-all.mts` | ビルドスクリプト。`index.tsx`をJS/CSS/HTMLに変換して`assets/`に出力 |
-| `assets/pizzaz-shop.html` | `<script src="GitHub PagesのJS">` と `<link href="CSS">` だけの薄いHTML |
-| `pizzaz_server_node/src/server.ts` | MCPサーバー。ChatGPTからの呼び出しを受けて、`assets/*.html`の中身を返す |
-| GitHub Pages | JS/CSSを世界中から読み込めるように配信する場所 |
+| ファイル | タイミング | 役割 |
+|---|---|---|
+| `src/pizzaz-shop/index.tsx` | 開発時に編集 | UIを作るReactコード |
+| `build-all.mts` | `pnpm run build` 時に実行 | Reactコードを JS/CSS/HTML に変換して `assets/` に出力 |
+| `assets/pizzaz-shop.html` | ChatGPT 表示時に使用 | GitHub Pages の JS/CSS を参照する薄いHTML |
+| `pizzaz_server_node/src/server.ts` | サーバー起動中に応答 | ChatGPT からの呼び出しを受けてHTMLを返す MCPサーバー |
+| GitHub Pages | iframeレンダリング時に参照 | JS/CSS をインターネットに公開する場所 |
 
-### MCPサーバー内部の流れ
+---
+
+### 各ファイルの詳しい説明
+
+#### `src/pizzaz-shop/index.tsx`
+
+ChatGPT 上に表示される UI そのものを作る React コードです。
+商品一覧・フィルタ・数量変更・モーダル表示などがここに実装されています。
+
+- ここを編集してデザインや機能を変えます
+- `pnpm run build` を実行すると、このファイルがコンパイルされて `assets/` に出力されます
+- 出力後は GitHub Pages にデプロイしてはじめて ChatGPT 上に反映されます
+
+#### `build-all.mts`
+
+`pnpm run build` で呼び出されるビルドスクリプトです。
+`src/` 以下の `index.tsx` を探し、Vite でバンドルして `assets/` に出力します。
+
+- 出力ファイルにはコンテンツに基づくハッシュが付きます（例: `pizzaz-shop-5d06a688.js`）
+- ビルドするたびにハッシュが変わる場合があります
+- ハッシュが変わった場合は **MCPサーバーの再起動が必要**です（後述）
+
+#### `assets/pizzaz-shop.html`
+
+MCPサーバーが ChatGPT に返す HTML ファイルです。
+中身は GitHub Pages の JS/CSS を読み込む数行だけです。
+
+```html
+<script type="module" src="https://yukke-bit.github.io/apps-in-chatgpt/pizzaz-shop-[hash].js"></script>
+<link rel="stylesheet" href="https://yukke-bit.github.io/apps-in-chatgpt/pizzaz-shop-[hash].css">
+```
+
+- ChatGPT はこの HTML をiframeに貼り付けます
+- iframe の中のブラウザが GitHub Pages に JS/CSS を取りに行きます
+- MCPサーバー自身が JS/CSS を持っているわけではありません
+
+#### `pizzaz_server_node/src/server.ts`
+
+ChatGPT と通信する MCPサーバーです。
+ポート 8000 で待機し、ChatGPT からのリクエストに応答します。
 
 ```
-サーバー起動時
-  └─ assets/pizzaz-shop-*.html を読んでメモリに保存
+起動時
+  └─ assets/pizzaz-shop.html を読んでメモリに保存
 
-ChatGPTから「pizza-shop ツールを使いたい」とリクエスト
-  └─ /mcp エンドポイントで受け取る
-       ├─ registerAppTool でツールの存在を通知
-       │    返すもの: "ui://widget/pizza-shop.html というURIを見てね"
-       └─ registerAppResource でリソースを提供
-            返すもの: メモリに保存してあった HTML文字列
+ChatGPT からリクエストが来たとき
+  ├─ ツール一覧を返す（"pizza-shop というツールがあります"）
+  └─ リソースを返す（assets/pizzaz-shop.html の HTML文字列）
 ```
 
-ChatGPTはこのHTMLをiframeに貼って表示します。server.tsはHTMLを渡したら終わりで、その後のユーザー操作はiframe内のReactアプリとChatGPTが直接やり取りします。
+- **サーバーは HTML をメモリに保存するため、ビルドしてハッシュが変わった後は再起動が必要です**
+- 再起動しないと古い HTML を返し続け、ChatGPT 上で白い枠だけ表示される問題が起きます
 
-## よく使うコマンド
+---
+
+## セットアップ
+
+### 1. 依存パッケージのインストール
 
 ```powershell
 corepack pnpm install
+```
+
+### 2. ビルド
+
+```powershell
 corepack pnpm run build
-corepack pnpm run serve
+```
+
+`assets/` に HTML/JS/CSS が生成されます。
+
+### 3. MCPサーバーの起動
+
+```powershell
 corepack pnpm run start:pizzaz
-corepack pnpm run check
+```
+
+`http://localhost:8000/mcp` で起動します。
+
+### 4. 動作確認（ローカル）
+
+```powershell
 corepack pnpm run check:mcp -- http://localhost:8000/mcp
 ```
 
-- `corepack pnpm run build` は `src/**/index.{tsx,jsx}` を探して `assets/` に widget bundle を生成します。
-- `corepack pnpm run serve` は `assets/` を `http://localhost:4444` で配信します。ローカル確認用です。
-- `corepack pnpm run start:pizzaz` は `pizzaz_server_node` の MCP server を `http://localhost:8000/mcp` で起動します。
-- `corepack pnpm run check:mcp -- <MCP URL>` は MCP endpoint の initialize、tools/list、tools/call、resources/read を検証します。
+### 5. ChatGPT への接続（ngrok 経由）
 
-## 本番向け build
-
-assets を任意の本番 URL で参照させる場合は、`BASE_URL` を指定して build します。未指定時は GitHub Pages の `https://yukke-bit.github.io/apps-in-chatgpt` を使います。
+ローカルのMCPサーバーを ChatGPT から見えるようにするため、ngrok で公開します。
 
 ```powershell
-$env:BASE_URL = "https://assets.example.com"
-corepack pnpm run build
+ngrok http 8000
 ```
 
-この build で生成された `assets/` の中身を静的ホスティングへ配置します。その後、MCP server を公開し、ChatGPT / Antigravity 側には MCP server の URL を登録します。
+ChatGPT Developer Mode に以下の URL を登録します。
 
-```text
-https://mcp.example.com/mcp
 ```
-
-ローカルから ChatGPT に接続する場合は、まず `8000` を ngrok などで公開します。ChatGPT 側には次のような MCP server URL を登録します。
-
-```text
 https://<ngrok-host>/mcp
 ```
 
-assets は GitHub Pages など ChatGPT から到達できる HTTPS URL で配信してください。ローカルの `4444` は ChatGPT から見えないため、ChatGPT 実機確認には使わない前提です。
+接続後、動作確認します。
+
+```powershell
+corepack pnpm run check:mcp -- https://<ngrok-host>/mcp
+```
+
+---
 
 ## Pizzaz Shop デモでできること
 
 `Open Pizzaz Shop` で起動する画面では、以下を操作できます。
 
-- 商品一覧を見る。
-- `All`、`Vegetarian`、`Vegan`、`Size`、`Spicy` で商品を絞り込む。
-- 各商品の `+` / `-` で数量を変える。
-- 商品カードをクリックして商品詳細モーダルを開く。
-- `Cart` をクリックしてカート内容のモーダルを開く。
-- Checkout風の画面を表示する。
+- 商品一覧を見る
+- `All` / `Vegetarian` / `Vegan` / `Size` / `Spicy` で絞り込む
+- 各商品の `+` / `-` で数量を変える
+- 商品カードをクリックして詳細モーダルを開く
+- `Cart` をクリックしてカート内容のモーダルを開く
+- Checkout 風の画面を表示する
 
-このデモで未実装のこと:
+**このデモで未実装のこと：**
 
-- 実際の決済
-- 在庫更新
-- DB保存
-- 実配送
-- CartからCheckout、Paymentまでの完全な購入フロー
+- 実際の決済・在庫更新・DB保存・実配送
+- Cart から Checkout・Payment までの完全な購入フロー
 
-つまり、これは「ECっぽい画面をChatGPT内で操作できる」ことを確認するデモです。実店舗や決済サービスとはつながっていません。
-
-## ChatGPTでの確認手順
-
-1. ChatGPT Developer Modeでアプリを再接続する。
-2. `Open Pizzaz Shop` を起動する。
-3. 商品画像が表示されることを確認する。
-4. フィルタと数量変更を試す。
-5. 商品カードをクリックして商品詳細を開く。
-6. `Cart` をクリックしてカート内容を確認する。
-
-ChatGPTをダークモードにしている場合、背景色が明示されていない箇所は読みにくくなることがあります。商品詳細、Cart、Checkout風画面は白背景で読めるように調整対象です。
-
-## 作業計画
-
-公式 Streamable HTTP 記法への寄せ直し内容と検証結果は、以下に記録しています。
-
-- `docs/pizzaz-node-official-streamable-http-refactor-plan.md`
-- `docs/pizzaz-shop-refactor-plan.md`
-
-## ワークスペースファイル
-
-Antigravity や VS Code 系のエディタでは、`apps-in-chatgpt.code-workspace` を開いてください。
-
-## メモ
-
-まずは Pizzaz の Node.js サンプルを動かすことを優先し、他の公式サンプル用ディレクトリは置いていません。
+これは「EC っぽい画面を ChatGPT 内で操作できる」ことを確認するデモです。実店舗や決済サービスとはつながっていません。

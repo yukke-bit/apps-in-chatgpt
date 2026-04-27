@@ -19,6 +19,7 @@ const selectedEntries = cliTarget
   ? entries.filter((file) => path.basename(path.dirname(file)) === cliTarget)
   : entries;
 
+// Vite のバーチャルエントリを作るプラグイン。CSS を先にインポートしてから実際のエントリファイルを読み込む。
 function wrapEntryPlugin(
   virtualId: string,
   entryFile: string,

@@ -42,6 +42,7 @@ const WIDGET_RESOURCE_DOMAINS = [
   "https://events.mapbox.com",
 ];
 
+// assets/ から指定コンポーネントの HTML ファイルを読み込んで文字列で返す。ハッシュ付きファイル名にも対応。
 function readWidgetHtml(componentName: string): string {
   if (!fs.existsSync(ASSETS_DIR)) {
     throw new Error(
@@ -72,6 +73,7 @@ function readWidgetHtml(componentName: string): string {
   );
 }
 
+// ChatGPT にツールを登録するときに付ける _meta 情報を返す。表示中メッセージと resourceUri を含む。
 function widgetToolMeta(widget: PizzazWidget) {
   return {
     ui: {
@@ -82,6 +84,7 @@ function widgetToolMeta(widget: PizzazWidget) {
   } as const;
 }
 
+// ChatGPT にリソースを登録するときに付ける _meta 情報を返す。CSP（読み込み許可ドメイン）などを含む。
 function widgetResourceMeta(widget: PizzazWidget) {
   return {
     ui: {
@@ -143,6 +146,7 @@ const widgets: PizzazWidget[] = [
   },
 ];
 
+// MCP サーバーを生成し、全ウィジェットのツールとリソースを登録して返す。リクエストごとに呼ばれる。
 function createPizzazServer(): McpServer {
   const server = new McpServer({
     name: "pizzaz-node",
