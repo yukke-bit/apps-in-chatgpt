@@ -53,6 +53,14 @@ type PizzazCartWidgetProps = {
   widgetState?: Partial<PizzazCartWidgetState> | null;
 };
 
+type CartSummaryItem = {
+  id: string;
+  name: string;
+  price: number;
+  quantity: number;
+  image?: string;
+};
+
 type PizzaImageProps = {
   src?: string;
   alt: string;
@@ -557,6 +565,7 @@ function App() {
   const displayMode = useDisplayMode();
   const isFullscreen = displayMode === "fullscreen";
 
+  // 1. ChatGPTから渡された状態を、画面で使える商品リストに戻します。
   // ChatGPT widget から渡される props/state を読みます。
   // 数量変更や選択中の商品は widget state に保存され、再描画後も復元されます。
   const widgetProps = useWidgetProps<PizzazCartWidgetProps>(() => ({}));
@@ -726,6 +735,7 @@ function App() {
   );
   const [activeFilters, setActiveFilters] = useState<string[]>([]);
 
+  // 2. ユーザー操作で変わった内容を、ChatGPT側のwidget stateに戻します。
   const updateWidgetState = useCallback(
     (partial: Partial<PizzazCartWidgetState>) => {
       setWidgetState((previous) => ({
@@ -789,6 +799,7 @@ function App() {
 
   const manualCheckoutTriggerRef = useRef(false);
 
+  // 3. 商品詳細、Cart、Checkout風画面をChatGPTのモーダルとして開きます。
   // 商品詳細・Cart・Checkout風画面は、ChatGPT の modal として同じ widget を開き直します。
   const requestModalWithAnchor = useCallback(
     ({
@@ -894,6 +905,7 @@ function App() {
     [cartItems]
   );
 
+  // 4. 一覧に表示する商品を、選択中のフィルタに合わせて絞り込みます。
   const visibleCartItems = useMemo(() => {
     if (!activeFilters.length) {
       return cartItems;
@@ -1009,14 +1021,7 @@ function App() {
     ]
   );
 
-  type CartSummaryItem = {
-    id: string;
-    name: string;
-    price: number;
-    quantity: number;
-    image?: string;
-  };
-
+  // 5. Cartモーダルで表示する内容を、モーダル起動時のparamsから復元します。
   const cartSummaryItems: CartSummaryItem[] = useMemo(() => {
     if (!isCartModalView) {
       return [];
@@ -1157,6 +1162,7 @@ function App() {
     ]
   );
 
+  // 6. 「See all items」はChatGPTの表示モードを広げるだけで、商品データは変えません。
   const handleSeeAll = useCallback(async () => {
     if (typeof window === "undefined") {
       return;
@@ -1220,6 +1226,7 @@ function App() {
     selectedCartItemName,
   ]);
 
+  // 7. ここから下は表示組み立てです。操作ロジックは上のブロックに集約しています。
   const cartPanel = (
     <section>
       {!shouldShowCheckoutOnly && (
