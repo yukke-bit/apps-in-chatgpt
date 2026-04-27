@@ -30,6 +30,7 @@ temp/
 
 # Editor and OS files
 .DS_Store
+.claude/
 .idea/
 .vscode/
 Thumbs.db

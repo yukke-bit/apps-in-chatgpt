@@ -59,11 +59,44 @@ https://<ngrok-host>/mcp
 
 assets は GitHub Pages など ChatGPT から到達できる HTTPS URL で配信してください。ローカルの `4444` は ChatGPT から見えないため、ChatGPT 実機確認には使わない前提です。
 
+## Pizzaz Shop デモでできること
+
+`Open Pizzaz Shop` で起動する画面では、以下を操作できます。
+
+- 商品一覧を見る。
+- `All`、`Vegetarian`、`Vegan`、`Size`、`Spicy` で商品を絞り込む。
+- 各商品の `+` / `-` で数量を変える。
+- 商品カードをクリックして商品詳細モーダルを開く。
+- `Cart` をクリックしてカート内容のモーダルを開く。
+- Checkout風の画面を表示する。
+
+このデモで未実装のこと:
+
+- 実際の決済
+- 在庫更新
+- DB保存
+- 実配送
+- CartからCheckout、Paymentまでの完全な購入フロー
+
+つまり、これは「ECっぽい画面をChatGPT内で操作できる」ことを確認するデモです。実店舗や決済サービスとはつながっていません。
+
+## ChatGPTでの確認手順
+
+1. ChatGPT Developer Modeでアプリを再接続する。
+2. `Open Pizzaz Shop` を起動する。
+3. 商品画像が表示されることを確認する。
+4. フィルタと数量変更を試す。
+5. 商品カードをクリックして商品詳細を開く。
+6. `Cart` をクリックしてカート内容を確認する。
+
+ChatGPTをダークモードにしている場合、背景色が明示されていない箇所は読みにくくなることがあります。商品詳細、Cart、Checkout風画面は白背景で読めるように調整対象です。
+
 ## 作業計画
 
 公式 Streamable HTTP 記法への寄せ直し内容と検証結果は、以下に記録しています。
 
 - `docs/pizzaz-node-official-streamable-http-refactor-plan.md`
+- `docs/pizzaz-shop-refactor-plan.md`
 
 ## ワークスペースファイル
 

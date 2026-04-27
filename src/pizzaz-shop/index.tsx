@@ -20,6 +20,9 @@ import { useWidgetState } from "../use-widget-state";
 
 import { Button } from "@openai/apps-sdk-ui/components/Button";
 
+// このファイルはデモの見通しを優先し、Shop 体験を1ファイルにまとめています。
+// 大きな流れは「初期商品データ -> widget state -> ユーザー操作 -> モーダル表示」です。
+
 type NutritionFact = {
   label: string;
   value: string;
@@ -56,6 +59,8 @@ type PizzaImageProps = {
   className?: string;
 };
 
+// ChatGPT の iframe 内では画像読み込みに失敗することがあるため、
+// 画像が読めない場合も商品名入りの fallback を表示します。
 function PizzaImage({ src, alt, className }: PizzaImageProps) {
   const [failed, setFailed] = useState(false);
 
@@ -89,6 +94,7 @@ const DELIVERY_FEE = 2.99;
 const TAX_FEE = 3.4;
 const CONTINUE_TO_PAYMENT_EVENT = "pizzaz-shop:continue-to-payment";
 
+// フィルタはUIデモ用です。複数選択ではなく、1つの条件だけを有効にします。
 const FILTERS: Array<{
   id: "all" | "vegetarian" | "vegan" | "size" | "spicy";
   label: string;
@@ -101,6 +107,8 @@ const FILTERS: Array<{
   { id: "spicy", label: "Spicy", tag: "spicy" },
 ];
 
+// 商品一覧、商品詳細、Cart で共通利用する固定デモデータです。
+// 実在庫やDBとはつながっていません。
 const INITIAL_CART_ITEMS: CartItem[] = [
   {
     id: "marys-chicken",
@@ -253,6 +261,8 @@ const createDefaultWidgetState = (): PizzazCartWidgetState => ({
   selectedCartItemId: null,
 });
 
+// widget state に保存した商品情報と、現在の固定デモデータを安全に比べるための関数群です。
+// ChatGPT 側に古い state が残っていても、商品情報を補完して表示できるようにしています。
 const nutritionFactsEqual = (
   a?: NutritionFact[],
   b?: NutritionFact[]
@@ -329,7 +339,7 @@ function SelectedCartItemPanel({
   const hasHighlights = highlights.length > 0;
 
   return (
-    <div className="space-y-4">
+    <div className="space-y-4 bg-white text-black">
       <div className="overflow-hidden rounded-none border-b border-black/5 bg-white">
         <div className="relative flex items-center justify-center overflow-hidden">
           <PizzaImage
@@ -546,6 +556,9 @@ function App() {
   const maxHeight = useMaxHeight() ?? undefined;
   const displayMode = useDisplayMode();
   const isFullscreen = displayMode === "fullscreen";
+
+  // ChatGPT widget から渡される props/state を読みます。
+  // 数量変更や選択中の商品は widget state に保存され、再描画後も復元されます。
   const widgetProps = useWidgetProps<PizzazCartWidgetProps>(() => ({}));
   const [widgetState, setWidgetState] = useWidgetState<PizzazCartWidgetState>(
     createDefaultWidgetState
@@ -565,6 +578,7 @@ function App() {
   const cartGridRef = useRef<HTMLDivElement | null>(null);
   const [gridColumnCount, setGridColumnCount] = useState(1);
 
+  // 古い widget state に不足している商品情報があっても、現在の固定データで補完します。
   const mergeWithDefaultItems = useCallback(
     (items: CartItem[]): CartItem[] => {
       const existingIds = new Set(items.map((item) => item.id));
@@ -657,6 +671,9 @@ function App() {
   const view = useOpenAiGlobal("view");
   const viewParams = view?.params;
   const isModalView = view?.mode === "modal";
+
+  // ChatGPT の requestModal で開かれた画面かどうかを判定します。
+  // 商品詳細とCartは同じアプリを別モードで表示しているだけです。
   const checkoutFromState =
     (widgetState?.state ?? widgetProps?.widgetState?.state) === "checkout";
   const modalParams =
@@ -720,6 +737,7 @@ function App() {
     [setWidgetState]
   );
 
+  // widget state に古い商品情報が残っていた場合は、現在のデモデータで補完します。
   useEffect(() => {
     if (!Array.isArray(widgetState?.cartItems)) {
       return;
@@ -740,6 +758,8 @@ function App() {
     wasModalViewRef.current = isModalView;
   }, [checkoutFromState, isModalView, updateWidgetState]);
 
+  // 数量変更はローカル表示だけでなく widget state にも保存します。
+  // これにより、モーダルを開いた後もCart内容を引き継げます。
   const adjustQuantity = useCallback(
     (id: string, delta: number) => {
       setCartItems((previousItems) => {
@@ -769,6 +789,7 @@ function App() {
 
   const manualCheckoutTriggerRef = useRef(false);
 
+  // 商品詳細・Cart・Checkout風画面は、ChatGPT の modal として同じ widget を開き直します。
   const requestModalWithAnchor = useCallback(
     ({
       title,
@@ -854,6 +875,8 @@ function App() {
     [cartItems, openCartItemModal, updateWidgetState]
   );
 
+  // 合計金額は画面デモ用の固定手数料を足して計算します。
+  // 実決済、在庫、配送APIとはつながっていません。
   const subtotal = useMemo(
     () =>
       cartItems.reduce(
@@ -1102,6 +1125,8 @@ function App() {
         }
       }
 
+      // Cart modal 内ではデモ用イベントだけを出します。
+      // 実際の決済画面への完全な遷移は、このデモでは未実装です。
       if (isCartModalView) {
         return;
       }
@@ -1375,9 +1400,10 @@ function App() {
     </section>
   );
 
+  // Cartボタンから開くモーダルです。購入処理ではなく、カート内容の確認デモです。
   if (isCartModalView && !isCheckoutRoute) {
     return (
-      <div className="flex w-full flex-col gap-6 px-4">
+      <div className="flex w-full flex-col gap-6 bg-white px-4 pb-4 text-black">
         <div className="divide-y divide-black/5">
           {cartSummaryItems.length ? (
             cartSummaryItems.map((item) => (
@@ -1440,12 +1466,13 @@ function App() {
     );
   }
 
+  // 商品詳細またはCheckout風画面を表示する右側/モーダル用パネルです。
   const checkoutPanel = (
     <div
       className={
         shouldShowCheckoutOnly
-          ? "space-y-4"
-          : "space-y-4 overflow-hidden border-black/[0.075] pt-4 md:rounded-3xl md:border md:px-5 md:pb-5 md:shadow-[0px_6px_14px_rgba(0,0,0,0.06)]"
+          ? "space-y-4 bg-white px-5 pb-5 text-black"
+          : "space-y-4 overflow-hidden bg-white text-black border-black/[0.075] pt-4 md:rounded-3xl md:border md:px-5 md:pb-5 md:shadow-[0px_6px_14px_rgba(0,0,0,0.06)]"
       }
     >
       {shouldShowSelectedCartItemPanel ? (

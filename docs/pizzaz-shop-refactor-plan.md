@@ -2,36 +2,50 @@
 
 ## 現在のステータス
 
-- 状態: 計画書作成済み / 実装未着手
-- 対象: `src/pizzaz-shop`、周辺ドキュメント、作業ログ類
+- 状態: 第1フェーズ完了 / ChatGPT UI 再確認待ち
+- 対象: `src/pizzaz-shop`、README、周辺ドキュメント、作業ログ類
 - 目的: デモアプリの挙動を維持しながら、コード量・見通し・説明コメント・作業ディレクトリの汚れを改善する
 - 最終更新: 2026-04-27
 
 ## 方針
 
-- 一度に大きく変えず、掃除、分割、コメント追加、UI可読性修正、検証の順に進める。
+- 一度に大きく変えず、掃除、既存ファイル内の整理、コメント追加、UI可読性修正、検証の順に進める。
 - デモでできる操作は維持する。商品一覧、フィルタ、数量変更、商品詳細、Cart、Checkout風画面を壊さない。
 - コメントは行ごとの説明ではなく、ユーザー操作と処理の流れが分かる場所にだけ入れる。
-- 公式サンプル由来の構成を必要以上に崩さない。独自抽象化は、ファイル肥大化を解消する目的に限定する。
+- 公式サンプル由来の構成を必要以上に崩さない。ファイル数はなるべく増やさず、まずは1ファイル内の並び替え・命名整理・重複削減で見通しを改善する。
+- 商品データ、型定義、UI部品は原則として現行ファイル内に残す。分割は、ユーザー確認後に必要性が明確な場合だけ行う。
+- README はリファクタリングとは別枠の成果物として明確に更新する。デモで何ができるか、どこから未実装か、確認手順が分かる状態にする。
 - push は AGENTS.md のルールどおり、必ずユーザー許可後に行う。
 
 ## 実装タスク
 
 | ID | 状態 | 内容 | 対象 |
 | --- | --- | --- | --- |
-| R1 | 未着手 | 不要なローカルログを削除し、作業ディレクトリ直下を整理する | `.ngrok*.log`, `.pizzaz-server*.log`, `.static-server*.log` |
-| R2 | 未着手 | `.claude/` を残すか削除するか確認し、方針を記録する | `.claude/` |
-| R3 | 未着手 | 古い SSE 説明を現行 Streamable HTTP 説明へ更新する | `pizzaz_server_node/README.md` |
-| R4 | 未着手 | Shop の型定義と定数を分離する | `src/pizzaz-shop/types.ts`, `constants.ts` |
-| R5 | 未着手 | 商品データを分離する | `src/pizzaz-shop/data.ts` |
-| R6 | 未着手 | カート計算・比較・初期化ロジックを分離する | `src/pizzaz-shop/cart.ts` |
-| R7 | 未着手 | 商品画像コンポーネントを分離する | `src/pizzaz-shop/PizzaImage.tsx` |
-| R8 | 未着手 | 商品詳細パネルを分離し、ダークモードで読みにくい背景/文字色を修正する | `src/pizzaz-shop/SelectedCartItemPanel.tsx` |
-| R9 | 未着手 | Checkout details パネルを分離する | `src/pizzaz-shop/CheckoutDetailsPanel.tsx` |
-| R10 | 未着手 | Cart summary modal を分離する | `src/pizzaz-shop/CartSummaryPanel.tsx` |
-| R11 | 未着手 | Shop 本体に「処理の流れ」が分かるコメントを追加する | `src/pizzaz-shop/index.tsx` |
-| R12 | 未着手 | デモでできる操作・未実装範囲を README に追記する | `README.md` |
-| R13 | 未着手 | build/check/MCP check と ChatGPT 実機確認を行い、結果を記録する | 検証コマンド、ChatGPT UI |
+| R1 | 一部完了 | 不要なローカルログを削除し、作業ディレクトリ直下を整理する | `.pizzaz-server*.log` は削除。ngrok/static server ログは実行中プロセスが使用中のため保留 |
+| R2 | 完了 | `.claude/` を残すか削除するか確認し、方針を記録する | `.gitignore` に `.claude/` を追加し、公開しない方針に変更 |
+| R3 | 完了 | 古い SSE 説明を現行 Streamable HTTP 説明へ更新する | `pizzaz_server_node/README.md` |
+| R4 | 一部完了 | `index.tsx` 内で型、定数、商品データ、補助関数、UI部品、App本体の順に整理する | 大きな分割はせず、主要セクションコメントを追加 |
+| R5 | 一部完了 | 商品データを現行ファイル内で読みやすく整形し、必要なら短い説明コメントを追加する | 固定デモデータであることをコメントで明示 |
+| R6 | 一部完了 | カート計算・比較・初期化ロジックの命名と並びを整理する | widget state 補完・合計計算の意図をコメントで明示 |
+| R7 | 一部完了 | 商品画像、商品詳細、Checkout details、Cart summary のコンポーネントを同一ファイル内で見つけやすく並べる | 商品画像と主要パネルの役割コメントを追加 |
+| R8 | 完了 | ダークモードで読みにくい商品詳細、Cart、Checkout の背景/文字色を修正する | `src/pizzaz-shop/index.tsx` |
+| R9 | 完了 | デモとして未完成の境界を、ユーザー操作ベースのコメントで明示する | Cart modal から先の完全な決済遷移は未実装とコメント |
+| R10 | 未着手 | 長すぎる JSX や条件式を、同一ファイル内の小さな関数/定数へ寄せて読みやすくする | `src/pizzaz-shop/index.tsx` |
+| R11 | 完了 | Shop 本体に「処理の流れ」が分かるコメントを追加する | `src/pizzaz-shop/index.tsx` |
+| R12 | 完了 | README にデモでできる操作、未実装範囲、ChatGPT確認手順を追記する | `README.md` |
+| R13 | 一部完了 | build/check/MCP check と ChatGPT 実機確認を行い、結果を記録する | build/check/MCP check は完了。ChatGPT UI は確認待ち |
+
+## README 更新方針
+
+- 追加する内容:
+  - Pizzaz Shop で操作できること: 商品一覧、フィルタ、数量変更、商品詳細、Cart、Checkout風画面
+  - デモとして未実装のこと: 実決済、在庫更新、DB保存、実配送、CartからCheckoutへの完全な購入フロー
+  - ChatGPT 実機確認手順: アプリ再接続、Shop起動、画像確認、数量変更、商品詳細、Cart表示
+  - ダークモードで見た目の問題が出る可能性と、修正対象であること
+- 書き方:
+  - ユーザー操作ベースで説明する
+  - 専門用語は必要最小限にする
+  - 「できる」「見た目だけ」「未実装」を分けて書く
 
 ## コメント追加方針
 
@@ -51,10 +65,10 @@
 
 | ID | 状態 | コマンド / 確認内容 | 結果 |
 | --- | --- | --- | --- |
-| V1 | 未実施 | `corepack pnpm run build` | 未記録 |
-| V2 | 未実施 | `corepack pnpm run check` | 未記録 |
-| V3 | 未実施 | `corepack pnpm run check:mcp -- http://localhost:8000/mcp` | 未記録 |
-| V4 | 未実施 | `corepack pnpm run check:mcp -- https://panning-snowless-press.ngrok-free.dev/mcp` | 未記録 |
+| V1 | 完了 | `corepack pnpm run build` | 成功。Tailwind sourcemap と chunk size の警告のみ |
+| V2 | 完了 | `corepack pnpm run check` | 成功 |
+| V3 | 完了 | `corepack pnpm run check:mcp -- http://localhost:8000/mcp` | 成功 |
+| V4 | 完了 | `corepack pnpm run check:mcp -- https://panning-snowless-press.ngrok-free.dev/mcp` | 成功 |
 | V5 | 未実施 | ChatGPT で一覧、画像、フィルタ、数量変更を確認 | 未記録 |
 | V6 | 未実施 | ChatGPT で商品詳細、Cart、Checkout風画面を確認 | 未記録 |
 
@@ -63,10 +77,11 @@
 | 日時 | 内容 |
 | --- | --- |
 | 2026-04-27 | 計画書を作成。実装は未着手。 |
+| 2026-04-27 | 第1フェーズを実施。README更新、サーバーREADME更新、`.claude/`除外、Shopの主要コメント追加、ダークモード可読性修正、build/check/MCP checkまで完了。 |
 
 ## 判断保留・リスク
 
-- `.claude/` はユーザーまたは別ツールの作業情報かもしれないため、削除前に確認する。
-- `src/pizzaz-shop/index.tsx` は巨大なので、分割は1フェーズずつ行い、各フェーズで build/check を挟む。
+- `.claude/` は公開しない。`.gitignore` で除外する。
+- `src/pizzaz-shop/index.tsx` は巨大だが、まずはファイル分割せず、同一ファイル内の整理で改善する。
 - ChatGPT のダークモードでは背景色未指定の領域が読みにくくなるため、詳細・Cart・Checkout の主要パネルは背景色と文字色を明示する。
 - Cart から Checkout への流れはデモとして未完成寄りのため、今回のリファクタでは挙動を変えず、必要なら別タスクで改善する。
