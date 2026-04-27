@@ -30,6 +30,12 @@ GitHub Pages
   https://yukke-bit.github.io/apps-in-chatgpt/pizzaz-shop-[hash].css
 ```
 
+> **なぜ GitHub Pages を使うのか**
+>
+> ChatGPT の iframe は、インターネット上の HTTPS URL からしか JS/CSS を読み込めません。
+> ローカルの `localhost:4444` は ChatGPT から見えないため、外部に公開された URL が必要です。
+> GitHub Pages を使うと、git push するだけで自動的に HTTPS で公開できます。
+
 **フェーズ 2 — ChatGPT からの呼び出し（実行時）**
 
 ```
