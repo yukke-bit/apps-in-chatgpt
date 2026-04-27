@@ -129,7 +129,7 @@ for (const file of fs.readdirSync(outDir)) {
 const assetsBaseUrl = (
   process.env.VITE_BASE_URL ??
   process.env.BASE_URL ??
-  "http://localhost:4444"
+  "https://yukke-bit.github.io/apps-in-chatgpt"
 ).replace(/\/+$/, "");
 
 for (const name of builtNames) {

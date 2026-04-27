@@ -25,6 +25,21 @@ function parseSseMessage<T>(body: string): JsonRpcResponse<T> {
   return JSON.parse(dataLine.slice("data: ".length));
 }
 
+function parseJsonRpcMessage<T>(
+  body: string,
+  contentType: string | null
+): JsonRpcResponse<T> | undefined {
+  if (body.trim() === "") {
+    return undefined;
+  }
+
+  if (contentType?.includes("text/event-stream")) {
+    return parseSseMessage<T>(body);
+  }
+
+  return JSON.parse(body);
+}
+
 async function postJsonRpc<T>(
   body: unknown,
   sessionId?: string,
@@ -38,11 +53,11 @@ async function postJsonRpc<T>(
   const headers: Record<string, string> = {
     accept: "application/json, text/event-stream",
     "content-type": "application/json",
+    "mcp-protocol-version": "2025-11-25",
   };
 
   if (sessionId) {
     headers["mcp-session-id"] = sessionId;
-    headers["mcp-protocol-version"] = "2025-11-25";
   }
 
   const response = await fetch(endpoint, {
@@ -56,16 +71,43 @@ async function postJsonRpc<T>(
     throw new Error(`HTTP ${response.status}: ${text.slice(0, 300)}`);
   }
 
+  const message = parseJsonRpcMessage<T>(
+    text,
+    response.headers.get("content-type")
+  );
+
   if (options?.expectEmpty) {
-    return { response };
+    return { response, message };
   }
 
-  const message = parseSseMessage<T>(text);
+  if (!message) {
+    throw new Error("JSON-RPC response body was empty");
+  }
+
   if (message.error) {
     throw new Error(`JSON-RPC ${message.error.code}: ${message.error.message}`);
   }
 
   return { response, message };
+}
+
+function getTemplateUri(meta: Record<string, unknown> | undefined): string {
+  const ui = meta?.ui;
+  if (
+    ui &&
+    typeof ui === "object" &&
+    "resourceUri" in ui &&
+    typeof ui.resourceUri === "string"
+  ) {
+    return ui.resourceUri;
+  }
+
+  const legacyTemplateUri = meta?.["openai/outputTemplate"];
+  if (typeof legacyTemplateUri === "string") {
+    return legacyTemplateUri;
+  }
+
+  throw new Error("pizza-shop tool did not include ui.resourceUri");
 }
 
 async function main() {
@@ -99,23 +141,22 @@ async function main() {
     },
   });
 
-  const sessionId = initialize.response.headers.get("mcp-session-id");
-  if (!sessionId) {
-    throw new Error("Initialize response did not include mcp-session-id");
-  }
-
+  const sessionId = initialize.response.headers.get("mcp-session-id") ?? undefined;
   console.log(
     `Initialized ${initialize.message?.result?.serverInfo.name} (${initialize.message?.result?.protocolVersion})`
   );
+  console.log(sessionId ? `Session: ${sessionId}` : "Session: stateless");
 
-  await postJsonRpc(
-    {
-      jsonrpc: "2.0",
-      method: "notifications/initialized",
-    },
-    sessionId,
-    { expectEmpty: true }
-  );
+  if (sessionId) {
+    await postJsonRpc(
+      {
+        jsonrpc: "2.0",
+        method: "notifications/initialized",
+      },
+      sessionId,
+      { expectEmpty: true }
+    );
+  }
 
   const tools = await postJsonRpc<{
     tools: Array<{
@@ -132,16 +173,14 @@ async function main() {
     sessionId
   );
 
-  const tool = tools.message?.result?.tools.find((item) => item.name === "pizza-shop");
+  const tool = tools.message?.result?.tools.find(
+    (item) => item.name === "pizza-shop"
+  );
   if (!tool) {
     throw new Error("pizza-shop tool was not returned");
   }
 
-  const templateUri = tool._meta?.["openai/outputTemplate"];
-  if (typeof templateUri !== "string") {
-    throw new Error("pizza-shop tool did not include openai/outputTemplate");
-  }
-
+  const templateUri = getTemplateUri(tool._meta);
   console.log(`Tool found: ${tool.name} -> ${templateUri}`);
 
   await postJsonRpc(
@@ -178,15 +217,16 @@ async function main() {
   );
 
   const content = resource.message?.result?.contents[0];
-  const hasExternalAssets = content?.text?.includes(
-    "https://yukke-bit.github.io/apps-in-chatgpt"
-  );
-  const hasInlineAssets =
-    content?.text?.includes("<script type=\"module\">") &&
-    content.text.includes("<style>");
+  if (!content?.text) {
+    throw new Error("Widget resource did not include HTML text");
+  }
 
-  if (!hasExternalAssets && !hasInlineAssets) {
-    throw new Error("Widget HTML does not include external or inline assets");
+  const hasExternalAssets =
+    /<script\s+type="module"\s+src="https?:\/\//.test(content.text) &&
+    /<link\s+rel="stylesheet"\s+href="https?:\/\//.test(content.text);
+
+  if (!hasExternalAssets) {
+    throw new Error("Widget HTML does not include external script/style assets");
   }
 
   console.log(`Resource read: ${content.uri} (${content.mimeType})`);
