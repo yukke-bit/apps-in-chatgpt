@@ -20,6 +20,65 @@ MCP server は `McpServer`、`registerAppTool`、`registerAppResource`、Express
 
 本番では、MCP server は Node.js サーバーとして公開し、widget assets は CDN や静的ホスティングへ配置する想定です。`BASE_URL` は widget HTML 内に埋め込まれる JS/CSS の参照先です。未指定時は GitHub Pages の URL を使います。
 
+## 全体の動作フロー
+
+ChatGPT上でアプリが表示されるまでの流れです。
+
+```
+① コードを書く
+   src/pizzaz-shop/index.tsx   ← ReactコンポーネントでUIを作る
+
+        ↓  pnpm run build（build-all.mts が実行される）
+
+② ビルド成果物が assets/ に生成される
+   pizzaz-shop-[hash].js       ← Reactコードをまとめたもの
+   pizzaz-shop-[hash].css      ← スタイル
+   pizzaz-shop.html            ← 上2つを読み込む薄いHTML
+
+        ↓  git push → GitHub Pages で自動公開（GitHub Actions）
+
+③ インターネット上に公開される
+   https://yukke-bit.github.io/apps-in-chatgpt/pizzaz-shop-[hash].js
+   https://yukke-bit.github.io/apps-in-chatgpt/pizzaz-shop-[hash].css
+
+        ↓  ChatGPTが「ウィジェットを表示して」と呼び出す
+
+④ MCPサーバー（pizzaz_server_node/src/server.ts）が応答する
+   ChatGPTからのリクエストを受け取り、
+   assets/pizzaz-shop.html の中身（HTML文字列）をそのまま返す
+
+        ↓  ChatGPTがそのHTMLをiframeで表示
+
+⑤ ChatGPTのUI上に表示される
+   iframeの中でGitHub PagesのJS/CSSが読み込まれ、Reactアプリが動く
+```
+
+### 各ファイルの役割
+
+| ファイル | 役割 |
+|---|---|
+| `src/pizzaz-shop/index.tsx` | UIを作るReactコード。ここを編集してデザインや機能を変える |
+| `build-all.mts` | ビルドスクリプト。`index.tsx`をJS/CSS/HTMLに変換して`assets/`に出力 |
+| `assets/pizzaz-shop.html` | `<script src="GitHub PagesのJS">` と `<link href="CSS">` だけの薄いHTML |
+| `pizzaz_server_node/src/server.ts` | MCPサーバー。ChatGPTからの呼び出しを受けて、`assets/*.html`の中身を返す |
+| GitHub Pages | JS/CSSを世界中から読み込めるように配信する場所 |
+
+### MCPサーバー内部の流れ
+
+```
+サーバー起動時
+  └─ assets/pizzaz-shop-*.html を読んでメモリに保存
+
+ChatGPTから「pizza-shop ツールを使いたい」とリクエスト
+  └─ /mcp エンドポイントで受け取る
+       ├─ registerAppTool でツールの存在を通知
+       │    返すもの: "ui://widget/pizza-shop.html というURIを見てね"
+       └─ registerAppResource でリソースを提供
+            返すもの: メモリに保存してあった HTML文字列
+```
+
+ChatGPTはこのHTMLをiframeに貼って表示します。server.tsはHTMLを渡したら終わりで、その後のユーザー操作はiframe内のReactアプリとChatGPTが直接やり取りします。
+
 ## よく使うコマンド
 
 ```powershell
